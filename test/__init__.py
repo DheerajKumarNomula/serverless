@@ -3,6 +3,16 @@ import csv
 import azure.functions as func
 import temp
 
+def install(package):
+    # This function will install a package if it is not present
+    from importlib import import_module
+    try:
+        import_module(package)
+    except:
+        from sys import executable as se
+        from subprocess import check_call
+        check_call([se,'-m','pip','-q','install',package])
+
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
 
@@ -22,6 +32,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     #          "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response.",
     #          status_code=200
     #     )
+    install("pyodbc")
+    install("csv")
+
     print("Dheeraj")
     server = "foxie-poc-ondemand.sql.azuresynapse.net"
     database = "test_db3"
