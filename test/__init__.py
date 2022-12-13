@@ -58,17 +58,27 @@ def install(package):
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
 
+    try:
+        params = dict(req.get_json())
+    except Exception as e:
+        logging.exception(e)
+        return func.HttpResponse('Unsupported request format', status_code=400)
+
     # server = "foxie-poc-ondemand.sql.azuresynapse.net"
-    server = req_body.get('server')
+    server = params.get('server')
 
     # database = "test_db3"
-    database = req_body.get('database')
+    database = params.get('database')
 
     # sql = "select * from r_output_ow;"
-    sql = req_body.get('query')
+    sql = params.get('query')
 
     #params
-    params = req_body.get('params')
+    params = params.get('params')
+    logging.info(sql)
+    logging.info(params)
+    logging.info(database)
+    logging.info(server)
 
     # name = req.params.get('name')
     # if not name:
