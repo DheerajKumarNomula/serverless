@@ -29,7 +29,9 @@ def parameterize_query(query, params):
 def execute_sql(server, database, sql, params, local_file):
     cnxn = initialize_synapse_db_connection(server, database, username, password)
     cursor = cnxn.cursor()
-    cursor.execute(parameterize_query(sql, params))
+    sql_query = parameterize_query(sql, params)
+    print(sql_query)
+    cursor.execute(sql_query)
     rows = cursor.fetchall()
     field_names = [i[0] for i in cursor.description]
     fp = open(local_file, 'w')
