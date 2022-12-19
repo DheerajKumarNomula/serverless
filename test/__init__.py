@@ -11,6 +11,34 @@ def initialize_synapse_db_connection(server, database, username, password):
     cnxn = po.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER=' +
                       server + ';DATABASE=' + database + ';UID=' + username + ';PWD=' + password)
     return cnxn
+
+def initialize_storage_account(storage_account_name, storage_account_key):
+    try:
+        service_client = DataLakeServiceClient(account_url="{}://{}.dfs.core.windows.net".format(
+            "https", storage_account_name), credential=storage_account_key)
+
+        return service_client
+    except Exception as e:
+        print(e)
+        raise e
+        
+def upload_file_to_directory_bulk(service_client, container, cloud_file_path, local_input):
+    try:
+        file_system_client = service_client.get_file_system_client(file_system=container)
+
+        file_client = file_system_client.get_file_client(cloud_file_path)
+
+        local_file = open(local_input,'r')
+
+        file_contents = local_file.read()
+
+        file_client.upload_data(file_contents, overwrite=True)
+        file_client.flush_data(len(file_contents))
+
+    except Exception as e:
+        print(e)
+        raise e
+
 # need key : 'value1', 'value2', 'value3'
 def parameterize_query(query, params):
     query = query.replace(";", " ")
@@ -72,22 +100,17 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     # sql = "select * from r_output_ow;"
     sql = params.get('query')
-
+    
+    dest_container = params.get("destionation_container")
+    task_id = params.get("task_id")
+    
     #params
     params = params.get('params')
     logging.info(sql)
     logging.info(params)
     logging.info(database)
     logging.info(server)
-
-    # name = req.params.get('name')
-    # if not name:
-    #     try:
-    #         req_body = req.get_json()
-    #     except ValueError:
-    #         pass
-    #     else:
-    #         name = req_body.get('name')
+    logging.info(dest_container)
 
     install("pyodbc")
     install("csv")
@@ -96,10 +119,19 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     
     local_file = "output.csv"
     execute_sql(server, database, sql, params, local_file)
-    with open(local_file, 'rb') as f:
-            return func.HttpResponse(
-            body=f.read(),
-            mimetype='text/csv',
-            status_code=200
+
+    # with open(local_file, 'rb') as f:
+    #         return func.HttpResponse(
+    #         body=f.read(),
+    #         mimetype='text/csv',
+    #         status_code=200
+    #     )
+    
+    cloud_file_path = task_id+"/output.tsv"
+    service_client = initialize_storage_account("foxiepoc", "84a2MWWBq0r3nXpkznuPti8aENj2WI9tO9PFPkIV/ytuJISaDrWCPekcoBELxsK+e4ZF/Y7WeqL+9IC2tfLhYg==")
+    upload_file_to_directory_bulk(service_client, dest_container, cloud_file_path, local_file)
+    return func.HttpResponse(
+             "File uploaded successfully to the destination container.",
+             status_code=200
         )
 
