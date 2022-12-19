@@ -79,25 +79,28 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     task_id = params.get("task_id")
     
     #params
-    params = params.get('params')
-
+    sql_params = params.get('params')
+    
+    storage_account_name = params.get('storage_account_name')
+    storage_account_key = params.get('storage_account_key')
 
 
     print("Dheeraj")
     config_service_client = initialize_storage_account(config_account_name, config_account_key)
     sql = download_files_from_directory(config_service_client, config_container, config_sql_path+f"{export_id}"+".sql").decode()
     
-    logging.info(sql)
-    logging.info(params)
-    logging.info(database)
-    logging.info(server)
-    logging.info(dest_container)
+    logging.info("storage acc name" + storage_account_name)
+    logging.info("storage key" + storage_account_key)
+    # logging.info(database)
+    # logging.info(server)
+    # logging.info(dest_container)
 
     local_file = f"{export_id}.csv"
-    execute_sql(server, database, sql, params, local_file)
+    execute_sql(server, database, sql, sql_params, local_file)
 
     cloud_file_path = task_id+f"/{export_id}.tsv"
-    service_client = initialize_storage_account("foxiepoc", "84a2MWWBq0r3nXpkznuPti8aENj2WI9tO9PFPkIV/ytuJISaDrWCPekcoBELxsK+e4ZF/Y7WeqL+9IC2tfLhYg==")
+    # service_client = initialize_storage_account("foxiepoc", "84a2MWWBq0r3nXpkznuPti8aENj2WI9tO9PFPkIV/ytuJISaDrWCPekcoBELxsK+e4ZF/Y7WeqL+9IC2tfLhYg==")
+    service_client = initialize_storage_account(storage_account_name, storage_account_key)
     upload_file_to_directory_bulk(service_client, dest_container, cloud_file_path, local_file)
     return func.HttpResponse(
              "File uploaded successfully to the destination container.",
