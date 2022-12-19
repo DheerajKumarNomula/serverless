@@ -3,7 +3,11 @@ import csv
 import azure.functions as func
 import pyodbc as po
 from azure.storage.filedatalake import DataLakeServiceClient
+from .data_lake_file_client import  initialize_storage_account
+from .data_lake_file_client import  download_files_from_directory
+from .data_lake_file_client import  upload_file_to_directory_bulk
 
+from .data_lake_file_client import  write_file
 
 username = "sqladminuser"
 password = "increff@ADMIN123"
@@ -13,32 +17,6 @@ def initialize_synapse_db_connection(server, database, username, password):
                       server + ';DATABASE=' + database + ';UID=' + username + ';PWD=' + password)
     return cnxn
 
-def initialize_storage_account(storage_account_name, storage_account_key):
-    try:
-        service_client = DataLakeServiceClient(account_url="{}://{}.dfs.core.windows.net".format(
-            "https", storage_account_name), credential=storage_account_key)
-
-        return service_client
-    except Exception as e:
-        print(e)
-        raise e
-        
-def upload_file_to_directory_bulk(service_client, container, cloud_file_path, local_input):
-    try:
-        file_system_client = service_client.get_file_system_client(file_system=container)
-
-        file_client = file_system_client.get_file_client(cloud_file_path)
-
-        local_file = open(local_input,'r')
-
-        file_contents = local_file.read()
-
-        file_client.upload_data(file_contents, overwrite=True)
-        file_client.flush_data(len(file_contents))
-
-    except Exception as e:
-        print(e)
-        raise e
 
 # need key : 'value1', 'value2', 'value3'
 def parameterize_query(query, params):
@@ -72,17 +50,10 @@ def execute_sql(server, database, sql, params, local_file):
     del cursor
     cnxn.close()
 
-
-
-def install(package):
-    # This function will install a package if it is not present
-    from importlib import import_module
-    try:
-        import_module(package)
-    except:
-        from sys import executable as se
-        from subprocess import check_call
-        check_call([se,'-m','pip','-q','install',package])
+config_account_name = "foxiecommons"
+config_account_key = "vP3zC4hFJEv/1JHktS5rQoeoIPoZRj4tmggXNNn6i/27NodwVHaThf1qubLXXEjewtC1BkRkplJq+AStztietQ=="
+config_container = "commons"
+config_sql_path = "common_files/export/"
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -100,39 +71,43 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     database = params.get('database')
 
     # sql = "select * from r_output_ow;"
-    sql = params.get('query')
+    export_id = params.get("export_id")
+
+    # sql = params.get('query')
     
     dest_container = params.get("destionation_container")
     task_id = params.get("task_id")
     
     #params
     params = params.get('params')
+
+
+
+    print("Dheeraj")
+    config_service_client = initialize_storage_account(config_account_name, config_account_key)
+    sql = download_files_from_directory(config_service_client, config_container, config_sql_path+f"{export_id}"+".sql").decode()
+    
     logging.info(sql)
     logging.info(params)
     logging.info(database)
     logging.info(server)
     logging.info(dest_container)
 
-    install("pyodbc")
-    install("csv")
-
-    print("Dheeraj")
-    
-    local_file = "output.csv"
+    local_file = f"{export_id}.csv"
     execute_sql(server, database, sql, params, local_file)
 
-    # with open(local_file, 'rb') as f:
-    #         return func.HttpResponse(
-    #         body=f.read(),
-    #         mimetype='text/csv',
-    #         status_code=200
-    #     )
-    
-    cloud_file_path = task_id+"/output.tsv"
+    cloud_file_path = task_id+f"/{export_id}.tsv"
     service_client = initialize_storage_account("foxiepoc", "84a2MWWBq0r3nXpkznuPti8aENj2WI9tO9PFPkIV/ytuJISaDrWCPekcoBELxsK+e4ZF/Y7WeqL+9IC2tfLhYg==")
     upload_file_to_directory_bulk(service_client, dest_container, cloud_file_path, local_file)
     return func.HttpResponse(
              "File uploaded successfully to the destination container.",
              status_code=200
         )
+        # with open(local_file, 'rb') as f:
+    #         return func.HttpResponse(
+    #         body=f.read(),
+    #         mimetype='text/csv',
+    #         status_code=200
+    #     )
+    
 
