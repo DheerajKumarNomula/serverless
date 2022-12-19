@@ -75,7 +75,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     # sql = params.get('query')
     
-    dest_container = params.get("destionation_container")
+    dest_container = params.get("destination_container")
     task_id = params.get("task_id")
     
     #params
