@@ -2,6 +2,7 @@ import logging
 import csv
 import azure.functions as func
 import pyodbc as po
+from azure.storage.filedatalake import DataLakeServiceClient
 
 
 username = "sqladminuser"
