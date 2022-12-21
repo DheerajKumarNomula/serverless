@@ -33,19 +33,35 @@ def parameterize_query(query, params):
         query = query + key + " in (" + params[key] + ");"
     return query
 
+def download_using_query(cursor, query, params, file_name):
+    split_query = query.split(';')
+
+    fp = open(local_file_path + file_name + '.tsv', 'w')
+
+    for split_query_part in split_query:
+        param_query = parameterize_query(split_query_part, params)
+        print(param_query)
+        cursor.execute(param_query)
+        rows = cursor.fetchall()
+        file = csv.writer(fp, delimiter='\t')
+        file.writerows(rows)
+
+    fp.close()
+
+
 def execute_sql(server, database, sql, params, local_file):
     cnxn = initialize_synapse_db_connection(server, database, username, password)
     cursor = cnxn.cursor()
-    sql_query = parameterize_query(sql, params)
-    print(sql_query)
-    cursor.execute(sql_query)
-    rows = cursor.fetchall()
-    field_names = [i[0] for i in cursor.description]
-    fp = open(local_file, 'w')
-    file = csv.writer(fp, delimiter='\t')
-    file.writerow(field_names)
-    file.writerows(rows)
-    fp.close()
+    # sql_query = parameterize_query(sql, params)
+    # cursor.execute(sql_query)
+    # rows = cursor.fetchall()
+    # field_names = [i[0] for i in cursor.description]
+    # fp = open(local_file, 'w')
+    # file = csv.writer(fp, delimiter='\t')
+    # file.writerow(field_names)
+    # file.writerows(rows)
+    # fp.close()
+    download_using_query(cursor=cursor, query=sql_query, params=params, file_name=local_file)
     cursor.close()
     del cursor
     cnxn.close()
@@ -54,6 +70,7 @@ config_account_name = "foxiecommons"
 config_account_key = "vP3zC4hFJEv/1JHktS5rQoeoIPoZRj4tmggXNNn6i/27NodwVHaThf1qubLXXEjewtC1BkRkplJq+AStztietQ=="
 config_container = "commons"
 config_sql_path = "common_files/export/"
+
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
