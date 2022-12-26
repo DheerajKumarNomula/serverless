@@ -132,7 +132,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     local_file = f"{export_id}.csv"
     execute_sql(server, database, sql, sql_params, local_file)
 
-    cloud_file_path = task_id + f"/{export_id}.tsv"
+    cloud_file_path = task_id + "/task" + f"/{export_id}.tsv"
     # service_client = initialize_storage_account("foxiepoc", "84a2MWWBq0r3nXpkznuPti8aENj2WI9tO9PFPkIV/ytuJISaDrWCPekcoBELxsK+e4ZF/Y7WeqL+9IC2tfLhYg==")
     service_client = initialize_storage_account(storage_account_name, storage_account_key)
     upload_file_to_directory_bulk(service_client, dest_container, cloud_file_path, local_file)
